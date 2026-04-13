@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Writer Invoice</title>
+    <style>
+        :root {
+            --primary-color: #333;
+            --secondary-color: #666;
+            --border-color: #eee;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+        
+        body { background: #f0f0f0; margin: 0; padding: 20px; color: var(--primary-color); }
+
+        .invoice-wrapper {
+            background: #fff;
+            width: 210mm; 
+            min-height: 297mm; 
+            margin: 0 auto;
+            /* 45mm Top Margin and Right spacing preserved */
+            padding: 45mm 25mm 20mm 20mm; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .controls { 
+            width: 210mm; margin: 0 auto 20px auto; 
+            display: flex; justify-content: space-between; 
+        }
+        button { 
+            padding: 10px 20px; cursor: pointer; border-radius: 4px; border: none; 
+            font-weight: bold; transition: 0.2s;
+        }
+        .btn-add { background: #e2e2e2; color: #333; }
+        .btn-print { background: #000; color: #fff; }
+
+        .header { display: flex; justify-content: space-between; margin-bottom: 40px; align-items: flex-start; }
+        .header h1 { text-transform: uppercase; letter-spacing: 2px; margin: 0; font-weight: 400; font-size: 28px; }
+        
+        .meta-info { text-align: right; min-width: 200px; padding-right: 5px; }
+        .meta-row { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 5px; }
+        .meta-row label { font-size: 13px; color: var(--secondary-color); margin-right: 10px; text-transform: uppercase; }
+        .meta-row input { 
+            text-align: right; border: none; font-size: 14px; font-weight: bold; width: 120px;
+            padding: 2px; background: transparent;
+        }
+
+        .address-section { display: flex; justify-content: space-between; margin-bottom: 40px; gap: 40px; }
+        .address-box { flex: 1; }
+        .address-box h3 { font-size: 11px; text-transform: uppercase; color: var(--secondary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 10px; }
+        .address-box textarea { width: 100%; border: none; resize: none; overflow: hidden; padding: 0; font-size: 14px; line-height: 1.6; color: #000; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+        th { background: #fafafa; text-align: left; padding: 12px 8px; border-bottom: 2px solid #333; font-size: 12px; text-transform: uppercase; }
+        td { padding: 12px 8px; border-bottom: 1px solid var(--border-color); vertical-align: top; word-wrap: break-word; }
+        
+        .col-del { width: 30px; }
+        .col-qty { width: 80px; }
+        .col-rate { width: 100px; }
+        .col-total { width: 120px; text-align: right; }
+
+        input { border: none; font-size: 14px; color: var(--primary-color); outline: none; width: 100%; }
+        input[type="number"] { font-family: monospace; }
+
+        .totals-section { display: flex; justify-content: flex-end; margin-top: 30px; }
+        .totals-table { width: 250px; }
+        .totals-table tr td { border: none; padding: 8px 0; }
+        .totals-table tr td:last-child { text-align: right; font-family: monospace; font-size: 15px; }
+        .grand-total { font-weight: bold; font-size: 18px; border-top: 2px solid #000 !important; padding-top: 15px !important; }
+
+        /* Payment Container with QR Code Alignment */
+        .payment-wrapper {
+            margin-top: auto;
+            padding-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .bank-details { flex: 1; font-size: 13px; }
+        .bank-details h4 { margin: 0 0 10px 0; color: var(--primary-color); text-transform: uppercase; font-size: 12px; border-bottom: 1px solid var(--border-color); display: inline-block; padding-right: 50px; }
+        .bank-row { margin-bottom: 4px; display: flex; }
+        .bank-row label { width: 120px; color: var(--secondary-color); }
+        .bank-row input { font-weight: 500; width: 250px; }
+
+        .qr-section {
+            text-align: center;
+            width: 130px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .qr-code-img {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #eee;
+            margin-bottom: 5px;
+            display: block; /* Ensures visibility */
+        }
+
+        .qr-caption {
+            font-size: 10px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-delete { color: #ccc; cursor: pointer; font-size: 16px; border: none; background: none; padding: 0; }
+        .btn-delete:hover { color: red; }
+
+        @page {
+            size: A4;
+            margin: 30mm 20mm 15mm 15mm; 
+        }
+
+        @media print {
+            body { background: #fff; padding: 0; margin: 0; }
+            .controls, .btn-delete, .btn-add { display: none !important; }
+            .invoice-wrapper { box-shadow: none; margin: 0; width: 100%; padding: 0; min-height: auto; }
+            input, textarea { background: transparent !important; color: #000 !important; }
+            * { -webkit-print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <button class="btn-add" onclick="addRow()">+ Add New Row</button>
+        <button class="btn-print" onclick="window.print()">Download / Save PDF</button>
+    </div>
+
+    <div class="invoice-wrapper">
+        <div class="header">
+            <div>
+                <h1>INVOICE</h1>
+            </div>
+            <div class="meta-info">
+                <div class="meta-row">
+                    <label>Invoice No:</label>
+                    <input type="text" value="2026-001">
+                </div>
+                <div class="meta-row">
+                    <label>Date:</label>
+                    <input type="text" id="dateInput">
+                </div>
+            </div>
+        </div>
+
+        <div class="address-section">
+            <div class="address-box">
+                <h3>From</h3>
+                <textarea rows="4" placeholder="Siva Prasad Mukherjee&#10;Rabindra Pally, Fatepur, Mollarpur-731216&#10;Birbhum, WB, INDIA&#10;PAN: AEOPM9068A; Mobile: +919046090608"></textarea>
+            </div>
+            <div class="address-box">
+                <h3>Bill To</h3>
+                <textarea rows="4" placeholder="The Editor&#10;Newspaper Name&#10;Office Address&#10;City, State"></textarea>
+            </div>
+        </div>
+
+        <table id="itemsTable">
+            <thead>
+                <tr>
+                    <th class="col-del"></th>
+                    <th class="col-desc">Description</th>
+                    <th class="col-qty">Qty</th>
+                    <th class="col-rate">Rate (₹)</th>
+                    <th class="col-total">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><button class="btn-delete" onclick="deleteRow(this)">✕</button></td>
+                    <td><input type="text" placeholder="Title of your article"></td>
+                    <td><input type="number" class="qty" value="1" oninput="calculate()"></td>
+                    <td><input type="number" class="rate" value="0" oninput="calculate()"></td>
+                    <td class="col-total">₹<span class="row-total">0.00</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="totals-section">
+            <table class="totals-table">
+                <tr>
+                    <td>Subtotal</td>
+                    <td>₹<span id="subtotal">0.00</span></td>
+                </tr>
+                <tr class="grand-total">
+                    <td>Grand Total</td>
+                    <td>₹<span id="grandTotal">0.00</span></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- PAYMENT WRAPPER WITH UPI QR ON RIGHT -->
+        <div class="payment-wrapper">
+            <div class="bank-details">
+                <h4>Payment Instructions</h4>
+                <div class="bank-row">
+                    <label>UPI ID:</label>
+                    <input type="text" value="spmohq@oksbi" readonly>
+                </div>
+                <div class="bank-row">
+                    <label>Bank Name:</label>
+                    <input type="text" placeholder="State Bank of India">
+                </div>
+                <div class="bank-row">
+                    <label>A/C Holder:</label>
+                    <input type="text" placeholder="SIVA PRASAD MUKHERJEE">
+                </div>
+                <div class="bank-row">
+                    <label>A/C Number:</label>
+                    <input type="text" placeholder="31778277706">
+                </div>
+                <div class="bank-row">
+                    <label>IFSC Code:</label>
+                    <input type="text" placeholder="SBIN0002087">
+                </div>
+            </div>
+
+            <div class="qr-section">
+                <!-- Using a more robust QR API -->
+                <img class="qr-code-img" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=spmohq@oksbi%26cu=INR" alt="UPI QR">
+                <span class="qr-caption">Scan to pay via UPI</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('dateInput').value = new Date().toLocaleDateString('en-IN', {
+            day: '2-digit', month: 'long', year: 'numeric'
+        });
+
+        function addRow() {
+            const table = document.getElementById('itemsTable').getElementsByTagName('tbody')[0];
+            const newRow = table.insertRow();
+            newRow.innerHTML = `
+                <td><button class="btn-delete" onclick="deleteRow(this)">✕</button></td>
+                <td><input type="text" placeholder="Title of your article"></td>
+                <td><input type="number" class="qty" value="1" oninput="calculate()"></td>
+                <td><input type="number" class="rate" value="0" oninput="calculate()"></td>
+                <td class="col-total">₹<span class="row-total">0.00</span></td>
+            `;
+        }
+
+        function deleteRow(btn) {
+            const row = btn.parentNode.parentNode;
+            if (document.getElementById('itemsTable').rows.length > 2) {
+                row.parentNode.removeChild(row);
+                calculate();
+            }
+        }
+
+        function calculate() {
+            let subtotal = 0;
+            const rows = document.querySelectorAll('#itemsTable tbody tr');
+            
+            rows.forEach(row => {
+                const qty = parseFloat(row.querySelector('.qty').value) || 0;
+                const rate = parseFloat(row.querySelector('.rate').value) || 0;
+                const amount = qty * rate;
+                row.querySelector('.row-total').innerText = amount.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                subtotal += amount;
+            });
+
+            const formattedTotal = subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            document.getElementById('subtotal').innerText = formattedTotal;
+            document.getElementById('grandTotal').innerText = formattedTotal;
+        }
+
+        document.querySelectorAll('textarea').forEach(el => {
+            el.addEventListener('input', () => {
+                el.style.height = 'auto';
+                el.style.height = el.scrollHeight + 'px';
+            });
+        });
+    </script>
+</body>
+</html>
